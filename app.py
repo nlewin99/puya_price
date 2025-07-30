@@ -46,13 +46,13 @@ def main():
     }
     .stock {
         font-size: 2rem;
-        color: #007bff;
+        color: #28a745;
         font-weight: bold;
         text-align: center;
     }
     .product-name {
         font-size: 1.5rem;
-        color: #333;
+        color: #28a745;
         text-align: center;
         margin-bottom: 1rem;
     }

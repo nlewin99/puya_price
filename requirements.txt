@@ -5,7 +5,6 @@ numpy>=1.24.0
 
 # Dependencias para escaneo automático
 opencv-python-headless>=4.8.0
-pyzbar>=0.1.9
 
 # Dependencias para imágenes
 Pillow>=10.0.0 

@@ -1,5 +1,5 @@
 """
-Aplicación Streamlit para consultar precios de productos por código de barras o QR
+Aplicación Streamlit para consultar precios de productos por código QR
 """
 
 import streamlit as st
@@ -89,9 +89,9 @@ def show_landing_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 2rem 0;">
-        <h2>🔍 Consulta precios de productos por código QR o de barras</h2>
+        <h2>🔍 Consulta precios de productos por código QR</h2>
         <p style="font-size: 1.2rem; color: #666;">
-            Escanea cualquier código QR o código de barras para obtener información del producto:
+            Escanea cualquier código QR para obtener información del producto:
         </p>
         <ul style="text-align: left; display: inline-block; font-size: 1.1rem;">
             <li>💰 Precio de venta</li>
@@ -100,9 +100,10 @@ def show_landing_page():
         </ul>
         
         <div style="margin: 2rem 0; padding: 1rem; background-color: #f8f9fa; border-radius: 10px;">
-            <h3>💡 Tipos de códigos soportados:</h3>
-            <p><strong>📱 Códigos QR (Recomendados):</strong> Más fáciles de escanear con móviles</p>
-            <p><strong>📏 Códigos de Barras:</strong> Compatibles con sistemas existentes</p>
+            <h3>💡 Optimizado para códigos QR:</h3>
+            <p><strong>📱 Códigos QR:</strong> Más fáciles de escanear con móviles</p>
+            <p><strong>⚡ Escaneo automático:</strong> Sin necesidad de entrada manual</p>
+            <p><strong>🔍 Detección inteligente:</strong> Funciona desde cualquier ángulo</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -126,8 +127,8 @@ def show_scanner_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 1rem 0;">
-        <h2>📱 Escáner Automático de Códigos QR y de Barras</h2>
-        <p>Escanea automáticamente el código QR o código de barras del producto</p>
+        <h2>📱 Escáner Automático de Códigos QR</h2>
+        <p>Escanea automáticamente el código QR del producto</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -137,7 +138,7 @@ def show_scanner_page():
         st.session_state.scanner.reset_scanner()
         st.rerun()
     
-    # Obtener código de barras con escaneo automático
+    # Obtener código QR con escaneo automático
     barcode = st.session_state.scanner.scan_with_fallback()
     
     if barcode:

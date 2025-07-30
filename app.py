@@ -126,7 +126,7 @@ def show_scanner_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 1rem 0;">
-        <h2>📱 Escáner de Códigos QR y de Barras</h2>
+        <h2>📱 Escáner Automático de Códigos QR y de Barras</h2>
         <p>Escanea automáticamente el código QR o código de barras del producto</p>
     </div>
     """, unsafe_allow_html=True)

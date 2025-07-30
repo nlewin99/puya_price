@@ -1,18 +1,62 @@
 """
-Módulo para escanear códigos de barras y QR automáticamente usando streamlit-barcode-scanner
+Módulo para escanear códigos QR y de barras automáticamente usando OpenCV
+Basado en: https://medium.com/analytics-vidhya/create-a-qr-code-decoder-web-application-using-opencv-and-streamlit-b0656146e2d1
 """
 
 import streamlit as st
-from streamlit_barcode_scanner import barcode_scanner
+import cv2
+import numpy as np
+from pyzbar.pyzbar import decode
+from PIL import Image
+import io
 from typing import Optional
 
 
 class AutoBarcodeScanner:
-    """Clase para manejar el escaneo automático de códigos de barras y QR"""
+    """Clase para manejar el escaneo automático de códigos QR y de barras"""
     
     def __init__(self):
         self.last_barcode = None
         
+    @st.cache_data
+    def decode_qr_barcode(_self, image):
+        """
+        Decodifica códigos QR y de barras desde una imagen
+        Basado en el artículo de Medium sobre QR code decoder
+        """
+        try:
+            # Convertir imagen PIL a array numpy
+            if isinstance(image, Image.Image):
+                image_array = np.array(image)
+            else:
+                image_array = image
+            
+            # Convertir a escala de grises si es necesario
+            if len(image_array.shape) == 3:
+                gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = image_array
+            
+            # Detectar códigos QR usando OpenCV
+            qr_detector = cv2.QRCodeDetector()
+            qr_data, bbox, _ = qr_detector.detectAndDecode(gray)
+            
+            if qr_data:
+                return qr_data
+            
+            # Si no se detectó QR, intentar con códigos de barras usando pyzbar
+            barcodes = decode(gray)
+            for barcode in barcodes:
+                barcode_data = barcode.data.decode('utf-8')
+                if barcode_data:
+                    return barcode_data
+            
+            return None
+            
+        except Exception as e:
+            st.error(f"Error al decodificar: {str(e)}")
+            return None
+    
     def scan_barcode_auto(self) -> Optional[str]:
         """
         Escanea un código de barras o QR automáticamente usando la cámara
@@ -38,27 +82,34 @@ class AutoBarcodeScanner:
                 - 📱 Funcionan mejor en buena iluminación
                 """)
             
-            # Usar streamlit-barcode-scanner para escaneo automático
-            barcode = barcode_scanner(
-                key="barcode_scanner",
-                help_text="Apunta la cámara hacia el código QR o código de barras"
-            )
+            # Usar cámara de Streamlit
+            camera_input = st.camera_input("📷 Escanea el código automáticamente")
             
-            if barcode:
-                # Verificar que no sea el mismo código
-                if barcode != self.last_barcode:
-                    self.last_barcode = barcode
-                    st.success(f"✅ Código detectado: {barcode}")
-                    
-                    # Determinar tipo de código (aproximado)
-                    if len(barcode) > 20:
-                        st.info("📱 Código QR detectado")
+            if camera_input is not None:
+                # Convertir la imagen de la cámara
+                image = Image.open(camera_input)
+                
+                # Intentar decodificar automáticamente
+                with st.spinner("🔍 Detectando código..."):
+                    decoded_data = self.decode_qr_barcode(image)
+                
+                if decoded_data:
+                    # Verificar que no sea el mismo código
+                    if decoded_data != self.last_barcode:
+                        self.last_barcode = decoded_data
+                        st.success(f"✅ Código detectado automáticamente: {decoded_data}")
+                        
+                        # Determinar tipo de código (aproximado)
+                        if len(decoded_data) > 20:
+                            st.info("📱 Código QR detectado")
+                        else:
+                            st.info("📏 Código de barras detectado")
+                        
+                        return decoded_data
                     else:
-                        st.info("📏 Código de barras detectado")
-                    
-                    return barcode
+                        st.info("🔄 Código ya escaneado, apunta hacia otro código")
                 else:
-                    st.info("🔄 Código ya escaneado, apunta hacia otro código")
+                    st.warning("⚠️ No se pudo detectar ningún código. Intenta con mejor iluminación o un código más claro.")
             
             return None
             

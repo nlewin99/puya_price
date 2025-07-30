@@ -1,0 +1,12 @@
+# Dependencias principales
+streamlit>=1.28.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Dependencias para códigos de barras
+opencv-python>=4.8.0
+pyzbar>=0.1.9
+Pillow>=10.0.0
+
+# Dependencias para Odoo
+xmlrpc>=1.0.1 

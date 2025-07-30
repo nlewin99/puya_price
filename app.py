@@ -100,10 +100,10 @@ def show_landing_page():
         </ul>
         
         <div style="margin: 2rem 0; padding: 1rem; background-color: #f8f9fa; border-radius: 10px;">
-            <h3>💡 Optimizado para códigos QR:</h3>
-            <p><strong>📱 Códigos QR:</strong> Más fáciles de escanear con móviles</p>
-            <p><strong>⚡ Escaneo automático:</strong> Sin necesidad de entrada manual</p>
-            <p><strong>🔍 Detección inteligente:</strong> Funciona desde cualquier ángulo</p>
+            <h3>💡 Escáner simplificado:</h3>
+            <p><strong>📱 Códigos QR:</strong> Escaneo automático con la cámara</p>
+            <p><strong>⚡ Detección instantánea:</strong> Sin necesidad de entrada manual</p>
+            <p><strong>🔍 Compatible con móviles:</strong> Funciona perfectamente en smartphones</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -111,7 +111,7 @@ def show_landing_page():
     # Botón central para iniciar escaneo
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🚀 INICIAR ESCANEO", type="primary", use_container_width=True):
+        if st.button("🚀 ESCANEAR CÓDIGO QR", type="primary", use_container_width=True):
             st.session_state.scanning = True
             st.rerun()
     
@@ -127,7 +127,7 @@ def show_scanner_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 1rem 0;">
-        <h2>📱 Escáner Automático de Códigos QR</h2>
+        <h2>📱 Escáner de Códigos QR</h2>
         <p>Escanea automáticamente el código QR del producto</p>
     </div>
     """, unsafe_allow_html=True)
@@ -139,16 +139,16 @@ def show_scanner_page():
         st.rerun()
     
     # Obtener código QR con escaneo automático
-    barcode = st.session_state.scanner.scan_with_fallback()
+    qr_code = st.session_state.scanner.scan_with_fallback()
     
-    if barcode:
+    if qr_code:
         # Verificar que no sea el mismo código
-        if barcode != st.session_state.last_barcode:
-            st.session_state.last_barcode = barcode
+        if qr_code != st.session_state.last_barcode:
+            st.session_state.last_barcode = qr_code
             
             # Consultar producto en Odoo
             with st.spinner("🔍 Consultando información del producto..."):
-                product_info = get_product_info(barcode)
+                product_info = get_product_info(qr_code)
             
             if product_info:
                 st.session_state.product_info = product_info

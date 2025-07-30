@@ -5,7 +5,7 @@ Aplicación Streamlit para consultar precios de productos por código de barras 
 import streamlit as st
 import time
 from odoo_client import OdooClient, AppConfig
-from barcode_scanner_auto import AutoBarcodeScanner
+from barcode_scanner import BarcodeScanner
 
 
 def main():
@@ -69,7 +69,7 @@ def main():
     
     # Inicializar variables de sesión
     if 'scanner' not in st.session_state:
-        st.session_state.scanner = AutoBarcodeScanner()
+        st.session_state.scanner = BarcodeScanner()
     if 'scanning' not in st.session_state:
         st.session_state.scanning = False
     if 'product_info' not in st.session_state:

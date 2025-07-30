@@ -1,146 +1,157 @@
 """
-Módulo para escanear códigos de barras usando la cámara
+Módulo para escanear códigos QR y de barras automáticamente usando OpenCV
+Basado en: https://medium.com/analytics-vidhya/create-a-qr-code-decoder-web-application-using-opencv-and-streamlit-b0656146e2d1
 """
 
+import streamlit as st
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
-import streamlit as st
-from typing import Optional, Tuple
-import time
+from PIL import Image
+import io
+from typing import Optional
 
 
 class BarcodeScanner:
-    """Clase para manejar el escaneo de códigos de barras"""
+    """Clase para manejar el escaneo automático de códigos QR y de barras"""
     
     def __init__(self):
-        self.cap = None
+        self.last_barcode = None
         
-    def start_camera(self) -> bool:
+    @st.cache_data
+    def decode_qr_barcode(_self, image):
         """
-        Inicia la cámara
-        
-        Returns:
-            bool: True si la cámara se inició correctamente
+        Decodifica códigos QR y de barras desde una imagen
+        Basado en el artículo de Medium sobre QR code decoder
         """
         try:
-            self.cap = cv2.VideoCapture(0)
-            if not self.cap.isOpened():
-                st.error("No se pudo acceder a la cámara")
-                return False
-            return True
-        except Exception as e:
-            st.error(f"Error al iniciar la cámara: {str(e)}")
-            return False
-    
-    def stop_camera(self):
-        """Detiene la cámara"""
-        if self.cap:
-            self.cap.release()
-    
-    def scan_barcode(self) -> Optional[str]:
-        """
-        Escanea un código de barras desde la cámara
-        
-        Returns:
-            str: Código de barras escaneado o None si no se detecta
-        """
-        if not self.cap or not self.cap.isOpened():
-            return None
+            # Convertir imagen PIL a array numpy
+            if isinstance(image, Image.Image):
+                image_array = np.array(image)
+            else:
+                image_array = image
             
-        try:
-            ret, frame = self.cap.read()
-            if not ret:
-                return None
+            # Convertir a escala de grises si es necesario
+            if len(image_array.shape) == 3:
+                gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = image_array
             
-            # Convertir frame a escala de grises
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # Detectar códigos QR usando OpenCV
+            qr_detector = cv2.QRCodeDetector()
+            qr_data, bbox, _ = qr_detector.detectAndDecode(gray)
             
-            # Detectar códigos de barras
+            if qr_data:
+                return qr_data
+            
+            # Si no se detectó QR, intentar con códigos de barras usando pyzbar
             barcodes = decode(gray)
-            
             for barcode in barcodes:
-                # Extraer datos del código de barras
                 barcode_data = barcode.data.decode('utf-8')
-                barcode_type = barcode.type
-                
-                # Dibujar rectángulo alrededor del código de barras
-                points = np.array([barcode.polygon], np.int32)
-                points = points.reshape((-1, 1, 2))
-                cv2.polylines(frame, [points], True, (0, 255, 0), 2)
-                
-                # Mostrar información del código de barras
-                cv2.putText(frame, f"{barcode_type}: {barcode_data}", 
-                           (barcode.rect.left, barcode.rect.top - 10),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                
-                return barcode_data
+                if barcode_data:
+                    return barcode_data
             
             return None
             
         except Exception as e:
-            st.error(f"Error al escanear código de barras: {str(e)}")
+            st.error(f"Error al decodificar: {str(e)}")
             return None
     
-    def get_frame(self) -> Optional[np.ndarray]:
+    def scan_barcode_auto(self) -> Optional[str]:
         """
-        Obtiene un frame de la cámara
+        Escanea un código de barras o QR automáticamente usando la cámara
         
         Returns:
-            np.ndarray: Frame de la cámara o None si hay error
+            str: Código escaneado o None si no se detecta
         """
-        if not self.cap or not self.cap.isOpened():
+        try:
+            st.markdown("### 📱 Escáner Automático")
+            st.markdown("**Apunta la cámara hacia el código QR o código de barras del producto**")
+            
+            # Información sobre tipos de códigos
+            with st.expander("ℹ️ Tipos de códigos soportados"):
+                st.markdown("""
+                **Códigos QR (Recomendados):**
+                - ✅ Más fáciles de escanear con móviles
+                - ✅ Se leen desde cualquier ángulo
+                - ✅ Más tolerantes a errores
+                
+                **Códigos de Barras:**
+                - 📏 Más compactos
+                - 🔍 Requieren alineación precisa
+                - 📱 Funcionan mejor en buena iluminación
+                """)
+            
+            # Usar cámara de Streamlit
+            camera_input = st.camera_input("📷 Escanea el código automáticamente")
+            
+            if camera_input is not None:
+                # Convertir la imagen de la cámara
+                image = Image.open(camera_input)
+                
+                # Intentar decodificar automáticamente
+                with st.spinner("🔍 Detectando código..."):
+                    decoded_data = self.decode_qr_barcode(image)
+                
+                if decoded_data:
+                    # Verificar que no sea el mismo código
+                    if decoded_data != self.last_barcode:
+                        self.last_barcode = decoded_data
+                        st.success(f"✅ Código detectado automáticamente: {decoded_data}")
+                        
+                        # Determinar tipo de código (aproximado)
+                        if len(decoded_data) > 20:
+                            st.info("📱 Código QR detectado")
+                        else:
+                            st.info("📏 Código de barras detectado")
+                        
+                        return decoded_data
+                    else:
+                        st.info("🔄 Código ya escaneado, apunta hacia otro código")
+                else:
+                    st.warning("⚠️ No se pudo detectar ningún código. Intenta con mejor iluminación o un código más claro.")
+            
             return None
             
-        try:
-            ret, frame = self.cap.read()
-            if ret:
-                # Convertir BGR a RGB para Streamlit
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                return frame_rgb
-            return None
         except Exception as e:
-            st.error(f"Error al obtener frame: {str(e)}")
+            st.error(f"Error en el escáner automático: {str(e)}")
             return None
     
-    def process_frame_for_barcode(self, frame: np.ndarray) -> Tuple[Optional[str], np.ndarray]:
+    def scan_with_fallback(self) -> Optional[str]:
         """
-        Procesa un frame para detectar códigos de barras
+        Escanea con fallback a entrada manual si el automático falla
         
-        Args:
-            frame: Frame de la cámara
-            
         Returns:
-            Tuple: (código de barras detectado, frame procesado)
+            str: Código escaneado o ingresado manualmente
         """
-        try:
-            # Convertir a escala de grises
-            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-            
-            # Detectar códigos de barras
-            barcodes = decode(gray)
-            
-            processed_frame = frame.copy()
-            
-            for barcode in barcodes:
-                # Extraer datos del código de barras
-                barcode_data = barcode.data.decode('utf-8')
-                barcode_type = barcode.type
-                
-                # Dibujar rectángulo alrededor del código de barras
-                points = np.array([barcode.polygon], np.int32)
-                points = points.reshape((-1, 1, 2))
-                cv2.polylines(processed_frame, [points], True, (0, 255, 0), 3)
-                
-                # Mostrar información del código de barras
-                cv2.putText(processed_frame, f"{barcode_type}: {barcode_data}", 
-                           (barcode.rect.left, barcode.rect.top - 10),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                
-                return barcode_data, processed_frame
-            
-            return None, processed_frame
-            
-        except Exception as e:
-            st.error(f"Error al procesar frame: {str(e)}")
-            return None, frame 
+        st.markdown("### 📱 Escáner de Códigos")
+        
+        # Opción 1: Escaneo automático
+        st.markdown("#### 🔍 Escaneo Automático")
+        barcode_auto = self.scan_barcode_auto()
+        
+        if barcode_auto:
+            return barcode_auto
+        
+        # Opción 2: Entrada manual como fallback
+        st.markdown("---")
+        st.markdown("#### 📝 Entrada Manual")
+        st.markdown("Si el escaneo automático no funciona, puedes ingresar el código manualmente:")
+        
+        barcode_manual = st.text_input(
+            "🔢 Ingresa el código (QR o código de barras):",
+            placeholder="Ej: 1234567890123",
+            key="manual_barcode_input"
+        )
+        
+        if st.button("🔍 Buscar Producto", type="primary"):
+            if barcode_manual and barcode_manual.strip():
+                return barcode_manual.strip()
+            else:
+                st.error("❌ Por favor ingresa un código válido")
+        
+        return None
+    
+    def reset_scanner(self):
+        """Reinicia el escáner"""
+        self.last_barcode = None 

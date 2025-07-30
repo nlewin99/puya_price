@@ -5,9 +5,7 @@ Aplicación Streamlit para consultar precios de productos por código de barras
 import streamlit as st
 import time
 from odoo_client import OdooClient, AppConfig
-from barcode_scanner import BarcodeScanner
-import cv2
-import numpy as np
+from barcode_scanner_simple import SimpleBarcodeScanner
 
 
 def main():
@@ -63,7 +61,7 @@ def main():
     
     # Inicializar variables de sesión
     if 'scanner' not in st.session_state:
-        st.session_state.scanner = BarcodeScanner()
+        st.session_state.scanner = SimpleBarcodeScanner()
     if 'scanning' not in st.session_state:
         st.session_state.scanning = False
     if 'product_info' not in st.session_state:
@@ -83,7 +81,7 @@ def show_landing_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 2rem 0;">
-        <h2>🔍 Escanea códigos de barras para consultar precios</h2>
+        <h2>🔍 Consulta precios de productos por código de barras</h2>
         <p style="font-size: 1.2rem; color: #666;">
             Escanea cualquier código de barras para obtener información del producto:
         </p>
@@ -99,11 +97,11 @@ def show_landing_page():
     # Botón central para iniciar escaneo
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🚀 INICIAR ESCANEO", type="primary", use_container_width=True):
+        if st.button("🚀 INICIAR CONSULTA", type="primary", use_container_width=True):
             st.session_state.scanning = True
             st.rerun()
     
-    # Mostrar información del último producto escaneado
+    # Mostrar información del último producto consultado
     if st.session_state.product_info:
         st.markdown("---")
         st.markdown("### 📋 Último producto consultado:")
@@ -115,69 +113,46 @@ def show_scanner_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 1rem 0;">
-        <h2>📱 Escáner de Códigos de Barras</h2>
-        <p>Apunta la cámara hacia el código de barras del producto</p>
+        <h2>📱 Consulta de Productos</h2>
+        <p>Ingresa el código de barras del producto para obtener información</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Botón para volver
     if st.button("← Volver al inicio"):
         st.session_state.scanning = False
-        st.session_state.scanner.stop_camera()
         st.rerun()
     
-    # Iniciar cámara
-    if not st.session_state.scanner.cap or not st.session_state.scanner.cap.isOpened():
-        if not st.session_state.scanner.start_camera():
-            st.error("No se pudo acceder a la cámara. Verifica los permisos.")
-            return
+    # Obtener código de barras
+    barcode = st.session_state.scanner.get_barcode_input()
     
-    # Contenedor para la cámara
-    camera_placeholder = st.empty()
-    
-    # Procesar frames de la cámara
-    try:
-        while True:
-            frame = st.session_state.scanner.get_frame()
-            if frame is not None:
-                # Procesar frame para detectar códigos de barras
-                barcode_data, processed_frame = st.session_state.scanner.process_frame_for_barcode(frame)
-                
-                # Mostrar frame procesado
-                camera_placeholder.image(processed_frame, channels="RGB", use_column_width=True)
-                
-                # Si se detectó un código de barras
-                if barcode_data and barcode_data != st.session_state.last_barcode:
-                    st.session_state.last_barcode = barcode_data
-                    
-                    # Mostrar código detectado
-                    st.success(f"✅ Código detectado: {barcode_data}")
-                    
-                    # Consultar producto en Odoo
-                    with st.spinner("🔍 Consultando información del producto..."):
-                        product_info = get_product_info(barcode_data)
-                    
-                    if product_info:
-                        st.session_state.product_info = product_info
-                        show_product_info(product_info)
-                        
-                        # Pausa para mostrar resultado
-                        time.sleep(3)
-                        
-                        # Volver al inicio
-                        st.session_state.scanning = False
-                        st.session_state.scanner.stop_camera()
-                        st.rerun()
-                    else:
-                        st.error("❌ Producto no encontrado en la base de datos")
-                        time.sleep(2)
+    if barcode:
+        # Verificar que no sea el mismo código
+        if barcode != st.session_state.last_barcode:
+            st.session_state.last_barcode = barcode
             
-            time.sleep(0.1)  # Pequeña pausa para no saturar la CPU
+            # Mostrar código ingresado
+            st.success(f"✅ Código ingresado: {barcode}")
             
-    except Exception as e:
-        st.error(f"Error en el escáner: {str(e)}")
-    finally:
-        st.session_state.scanner.stop_camera()
+            # Consultar producto en Odoo
+            with st.spinner("🔍 Consultando información del producto..."):
+                product_info = get_product_info(barcode)
+            
+            if product_info:
+                st.session_state.product_info = product_info
+                show_product_info(product_info)
+                
+                # Botón para consultar otro producto
+                if st.button("🔍 Consultar otro producto"):
+                    st.session_state.last_barcode = None
+                    st.rerun()
+            else:
+                st.error("❌ Producto no encontrado en la base de datos")
+                
+                # Botón para intentar de nuevo
+                if st.button("🔄 Intentar con otro código"):
+                    st.session_state.last_barcode = None
+                    st.rerun()
 
 
 def get_product_info(barcode: str):

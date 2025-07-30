@@ -11,7 +11,7 @@ class BarcodeScanner:
     """Clase simplificada para manejar el escaneo de códigos QR"""
     
     def __init__(self):
-        self.last_barcode = None
+        pass
         
     def scan_qr_code(self) -> Optional[str]:
         """
@@ -24,28 +24,12 @@ class BarcodeScanner:
             st.markdown("### 📱 Escáner de Códigos QR")
             st.markdown("**Apunta la cámara hacia el código QR del producto**")
             
-            # Información sobre códigos QR
-            with st.expander("ℹ️ Información sobre códigos QR"):
-                st.markdown("""
-                **Códigos QR (Recomendados):**
-                - ✅ Más fáciles de escanear con móviles
-                - ✅ Se leen desde cualquier ángulo
-                - ✅ Más tolerantes a errores
-                - ✅ Mayor capacidad de datos
-                - ✅ Mejor para aplicaciones móviles
-                """)
-            
             # Usar streamlit_qrcode_scanner
             qr_code = qrcode_scanner(key='qrcode_scanner')
             
             if qr_code:
-                # Verificar que no sea el mismo código
-                if qr_code != self.last_barcode:
-                    self.last_barcode = qr_code
-                    st.success(f"✅ Código QR detectado: {qr_code}")
-                    return qr_code
-                else:
-                    st.info("🔄 Código ya escaneado, apunta hacia otro código QR")
+                st.success(f"✅ Código QR detectado: {qr_code}")
+                return qr_code
             
             return None
             
@@ -90,4 +74,4 @@ class BarcodeScanner:
     
     def reset_scanner(self):
         """Reinicia el escáner"""
-        self.last_barcode = None 
+        pass 

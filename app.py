@@ -72,10 +72,6 @@ def main():
         st.session_state.scanner = BarcodeScanner()
     if 'scanning' not in st.session_state:
         st.session_state.scanning = False
-    if 'product_info' not in st.session_state:
-        st.session_state.product_info = None
-    if 'last_barcode' not in st.session_state:
-        st.session_state.last_barcode = None
     
     # Landing page
     if not st.session_state.scanning:
@@ -98,13 +94,6 @@ def show_landing_page():
             <li>📦 Stock disponible</li>
             <li>📝 Nombre del producto</li>
         </ul>
-        
-        <div style="margin: 2rem 0; padding: 1rem; background-color: #f8f9fa; border-radius: 10px;">
-            <h3>💡 Escáner simplificado:</h3>
-            <p><strong>📱 Códigos QR:</strong> Escaneo automático con la cámara</p>
-            <p><strong>⚡ Detección instantánea:</strong> Sin necesidad de entrada manual</p>
-            <p><strong>🔍 Compatible con móviles:</strong> Funciona perfectamente en smartphones</p>
-        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -114,12 +103,6 @@ def show_landing_page():
         if st.button("🚀 ESCANEAR CÓDIGO QR", type="primary", use_container_width=True):
             st.session_state.scanning = True
             st.rerun()
-    
-    # Mostrar información del último producto consultado
-    if st.session_state.product_info:
-        st.markdown("---")
-        st.markdown("### 📋 Último producto consultado:")
-        show_product_info(st.session_state.product_info)
 
 
 def show_scanner_page():
@@ -142,31 +125,24 @@ def show_scanner_page():
     qr_code = st.session_state.scanner.scan_with_fallback()
     
     if qr_code:
-        # Verificar que no sea el mismo código
-        if qr_code != st.session_state.last_barcode:
-            st.session_state.last_barcode = qr_code
+        # Consultar producto en Odoo
+        with st.spinner("🔍 Consultando información del producto..."):
+            product_info = get_product_info(qr_code)
+        
+        if product_info:
+            show_product_info(product_info)
             
-            # Consultar producto en Odoo
-            with st.spinner("🔍 Consultando información del producto..."):
-                product_info = get_product_info(qr_code)
+            # Botón para escanear otro producto
+            if st.button("🔍 Escanear otro producto"):
+                st.session_state.scanner.reset_scanner()
+                st.rerun()
+        else:
+            st.error("❌ Producto no encontrado en la base de datos")
             
-            if product_info:
-                st.session_state.product_info = product_info
-                show_product_info(product_info)
-                
-                # Botón para escanear otro producto
-                if st.button("🔍 Escanear otro producto"):
-                    st.session_state.last_barcode = None
-                    st.session_state.scanner.reset_scanner()
-                    st.rerun()
-            else:
-                st.error("❌ Producto no encontrado en la base de datos")
-                
-                # Botón para intentar de nuevo
-                if st.button("🔄 Intentar con otro código"):
-                    st.session_state.last_barcode = None
-                    st.session_state.scanner.reset_scanner()
-                    st.rerun()
+            # Botón para intentar de nuevo
+            if st.button("🔄 Intentar con otro código"):
+                st.session_state.scanner.reset_scanner()
+                st.rerun()
 
 
 def get_product_info(barcode: str):

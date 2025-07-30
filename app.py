@@ -5,7 +5,7 @@ Aplicación Streamlit para consultar precios de productos por código de barras
 import streamlit as st
 import time
 from odoo_client import OdooClient, AppConfig
-from barcode_scanner_simple import SimpleBarcodeScanner
+from barcode_scanner_auto import AutoBarcodeScanner
 
 
 def main():
@@ -39,14 +39,22 @@ def main():
         margin: 1rem 0;
     }
     .price {
-        font-size: 2rem;
+        font-size: 2.5rem;
         color: #28a745;
         font-weight: bold;
+        text-align: center;
     }
     .stock {
-        font-size: 1.5rem;
+        font-size: 2rem;
         color: #007bff;
         font-weight: bold;
+        text-align: center;
+    }
+    .product-name {
+        font-size: 1.5rem;
+        color: #333;
+        text-align: center;
+        margin-bottom: 1rem;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -61,7 +69,7 @@ def main():
     
     # Inicializar variables de sesión
     if 'scanner' not in st.session_state:
-        st.session_state.scanner = SimpleBarcodeScanner()
+        st.session_state.scanner = AutoBarcodeScanner()
     if 'scanning' not in st.session_state:
         st.session_state.scanning = False
     if 'product_info' not in st.session_state:
@@ -89,7 +97,6 @@ def show_landing_page():
             <li>💰 Precio de venta</li>
             <li>📦 Stock disponible</li>
             <li>📝 Nombre del producto</li>
-            <li>📋 SKU/Código interno</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -97,7 +104,7 @@ def show_landing_page():
     # Botón central para iniciar escaneo
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🚀 INICIAR CONSULTA", type="primary", use_container_width=True):
+        if st.button("🚀 INICIAR ESCANEO", type="primary", use_container_width=True):
             st.session_state.scanning = True
             st.rerun()
     
@@ -113,26 +120,24 @@ def show_scanner_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 1rem 0;">
-        <h2>📱 Consulta de Productos</h2>
-        <p>Ingresa el código de barras del producto para obtener información</p>
+        <h2>📱 Escáner de Códigos de Barras</h2>
+        <p>Escanea automáticamente el código de barras del producto</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Botón para volver
     if st.button("← Volver al inicio"):
         st.session_state.scanning = False
+        st.session_state.scanner.reset_scanner()
         st.rerun()
     
-    # Obtener código de barras
-    barcode = st.session_state.scanner.get_barcode_input()
+    # Obtener código de barras con escaneo automático
+    barcode = st.session_state.scanner.scan_with_fallback()
     
     if barcode:
         # Verificar que no sea el mismo código
         if barcode != st.session_state.last_barcode:
             st.session_state.last_barcode = barcode
-            
-            # Mostrar código ingresado
-            st.success(f"✅ Código ingresado: {barcode}")
             
             # Consultar producto en Odoo
             with st.spinner("🔍 Consultando información del producto..."):
@@ -142,9 +147,10 @@ def show_scanner_page():
                 st.session_state.product_info = product_info
                 show_product_info(product_info)
                 
-                # Botón para consultar otro producto
-                if st.button("🔍 Consultar otro producto"):
+                # Botón para escanear otro producto
+                if st.button("🔍 Escanear otro producto"):
                     st.session_state.last_barcode = None
+                    st.session_state.scanner.reset_scanner()
                     st.rerun()
             else:
                 st.error("❌ Producto no encontrado en la base de datos")
@@ -152,6 +158,7 @@ def show_scanner_page():
                 # Botón para intentar de nuevo
                 if st.button("🔄 Intentar con otro código"):
                     st.session_state.last_barcode = None
+                    st.session_state.scanner.reset_scanner()
                     st.rerun()
 
 
@@ -179,31 +186,22 @@ def get_product_info(barcode: str):
 
 
 def show_product_info(product_info):
-    """Muestra la información del producto"""
+    """Muestra la información del producto (solo precio y stock)"""
     
     st.markdown("""
     <div class="product-info">
     """, unsafe_allow_html=True)
     
     # Nombre del producto
-    st.markdown(f"### 📝 {product_info['name']}")
+    st.markdown(f'<p class="product-name">📝 {product_info["name"]}</p>', unsafe_allow_html=True)
     
     # Precio
     price = product_info.get('list_price', 0.0)
-    st.markdown(f'<p class="price">💰 Precio: ${price:,.2f}</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="price">💰 ${price:,.2f}</p>', unsafe_allow_html=True)
     
     # Stock disponible
     stock = product_info.get('immediately_usable_qty', 0)
-    st.markdown(f'<p class="stock">📦 Stock disponible: {stock:,.0f} unidades</p>', unsafe_allow_html=True)
-    
-    # Información adicional
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown(f"**📋 SKU:** {product_info.get('default_code', 'N/A')}")
-    
-    with col2:
-        st.markdown(f"**📊 Código de barras:** {product_info.get('barcode', 'N/A')}")
+    st.markdown(f'<p class="stock">📦 {stock:,.0f} unidades</p>', unsafe_allow_html=True)
     
     st.markdown("</div>", unsafe_allow_html=True)
 

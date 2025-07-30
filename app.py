@@ -1,5 +1,5 @@
 """
-Aplicación Streamlit para consultar precios de productos por código de barras
+Aplicación Streamlit para consultar precios de productos por código de barras o QR
 """
 
 import streamlit as st
@@ -89,15 +89,21 @@ def show_landing_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 2rem 0;">
-        <h2>🔍 Consulta precios de productos por código de barras</h2>
+        <h2>🔍 Consulta precios de productos por código QR o de barras</h2>
         <p style="font-size: 1.2rem; color: #666;">
-            Escanea cualquier código de barras para obtener información del producto:
+            Escanea cualquier código QR o código de barras para obtener información del producto:
         </p>
         <ul style="text-align: left; display: inline-block; font-size: 1.1rem;">
             <li>💰 Precio de venta</li>
             <li>📦 Stock disponible</li>
             <li>📝 Nombre del producto</li>
         </ul>
+        
+        <div style="margin: 2rem 0; padding: 1rem; background-color: #f8f9fa; border-radius: 10px;">
+            <h3>💡 Tipos de códigos soportados:</h3>
+            <p><strong>📱 Códigos QR (Recomendados):</strong> Más fáciles de escanear con móviles</p>
+            <p><strong>📏 Códigos de Barras:</strong> Compatibles con sistemas existentes</p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -120,8 +126,8 @@ def show_scanner_page():
     
     st.markdown("""
     <div style="text-align: center; margin: 1rem 0;">
-        <h2>📱 Escáner de Códigos de Barras</h2>
-        <p>Escanea automáticamente el código de barras del producto</p>
+        <h2>📱 Escáner de Códigos QR y de Barras</h2>
+        <p>Escanea automáticamente el código QR o código de barras del producto</p>
     </div>
     """, unsafe_allow_html=True)
     
